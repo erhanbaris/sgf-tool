@@ -1,0 +1,22 @@
+[package]
+name = "sgf-tool"
+authors = ["Erhan BARIS <erhanbaris@gmail.com>"]
+categories = ["data-structures", "parsing"]
+description = "SGF Tool"
+documentation = "https://docs.rs/sgf-tool"
+edition = "2021"
+keywords = ["go", "baduk", "sgf", "parser"]
+license = "MIT"
+repository = "https://github.com/erhanbaris/sgf-tool"
+rust-version = "1.74.1"
+readme = "README.md"
+version = "1.0.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pest = "2.7.6"
+pest_derive = "2.7.6"
+thiserror = "1.0.56"
+serde = { version = "1.0.195", features = ["derive"] }
+strum = { version = "0.25", features = ["derive"] }

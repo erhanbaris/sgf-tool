@@ -1,20 +1,13 @@
-use parser::Rule;
-use pest::Parser;
+mod builder;
+mod parser;
+
 use serde::{Deserialize, Serialize};
 
+use strum::EnumMessage;
 use thiserror::Error;
-use crate::parser::SgfParser;
-use pest::iterators::{Pair, Pairs};
-
-pub(crate) mod parser {
-    use pest_derive::Parser;
-    #[derive(Parser)]
-    #[grammar = "sgf.pest"]
-    pub(crate) struct SgfParser;
-}
 
 #[derive(Error, Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum SgfReaderError {
+pub enum SgfToolError {
     #[error("Syntax issue")]
     SyntaxIssue,
 
@@ -58,383 +51,222 @@ pub struct StoneText<'a>(pub Point<'a>, pub &'a str);
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum Player {
     Black,
-    White
+    White,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Base<'a> {
     #[serde(borrow)]
-    pub items: Vec<Tree<'a>>
+    pub items: Vec<Tree<'a>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, EnumMessage)]
 pub enum Tree<'a> {
     Unknown(&'a str),
-    
+
     /// Property: AP
+    #[strum(message = "AP")]
     Application(&'a str),
-    
+
     /// Property: C
+    #[strum(message = "C")]
     Comment(&'a str),
-    
+
     /// Property: CP
+    #[strum(message = "CP")]
     Copyright(&'a str),
-    
+
     /// Property: PB
+    #[strum(message = "PB")]
     BlackName(&'a str),
-    
+
     /// Property: PW
+    #[strum(message = "PW")]
     WhiteName(&'a str),
-    
+
     /// Property: BT
+    #[strum(message = "BT")]
     BlackTeam(&'a str),
-    
+
     /// Property: WT
+    #[strum(message = "WT")]
     WhiteTeam(&'a str),
-    
+
     /// Property: SZ
+    #[strum(message = "SZ")]
     BoardSize(usize, usize),
-    
+
     /// Variation
     Variation(Vec<Tree<'a>>),
-    
-    /// Property: FF 
+
+    /// Property: FF
+    #[strum(message = "FF")]
     FileFormat(usize),
-    
+
     /// Property: GM
+    #[strum(message = "GM")]
     GameType(usize),
-    
+
     /// Property: CA
+    #[strum(message = "CA")]
     Charset(&'a str),
-    
+
     /// Property: ST
+    #[strum(message = "ST")]
     VariationShown(usize),
-    
+
     /// Property: PL
+    #[strum(message = "PL")]
     WhoseTurn(Player),
-    
+
     /// Property: AB
+    #[strum(message = "AB")]
     BlackStones(Vec<Point<'a>>),
-    
+
     /// Property: AW
+    #[strum(message = "AW")]
     WhiteStones(Vec<Point<'a>>),
-    
+
     /// Property: B
+    #[strum(message = "B")]
     BlackMove(Point<'a>),
-    
+
     /// Property: W
+    #[strum(message = "W")]
     WhiteMove(Point<'a>),
-    
+
     /// Property: BR
+    #[strum(message = "BR")]
     BlackPlayerRank(&'a str),
-    
+
     /// Property: WR
+    #[strum(message = "WR")]
     WhitePlayerRank(&'a str),
-    
+
     /// Property: SO
+    #[strum(message = "SO")]
     Source(&'a str),
-    
+
     /// Property: GN
+    #[strum(message = "GN")]
     GameName(&'a str),
-    
+
     /// Property: N
+    #[strum(message = "N")]
     NodeName(&'a str),
-    
+
     /// Property: RU
+    #[strum(message = "RU")]
     Rule(&'a str),
-    
+
     /// Property: KM
+    #[strum(message = "KM")]
     Komi(f32),
-    
+
     /// Property: AN
+    #[strum(message = "AN")]
     PersonWhoProvidesAnnotations(&'a str),
-    
+
     /// Property: AR
+    #[strum(message = "AR")]
     DrawArrow(PointRange<'a>),
-    
+
     /// Property: CR
+    #[strum(message = "CR")]
     DrawCircle(Vec<Point<'a>>),
-    
+
     /// Property: SQ
+    #[strum(message = "SQ")]
     DrawSquare(Vec<Point<'a>>),
-    
+
     /// Property: TR
+    #[strum(message = "TR")]
     DrawTriangle(Vec<Point<'a>>),
-    
+
     /// Property: DD
+    #[strum(message = "DD")]
     GreyOut(Vec<Point<'a>>),
-    
+
     /// Property: MA
+    #[strum(message = "MA")]
     MarkX(Vec<Point<'a>>),
-    
+
     /// Property: HA
+    #[strum(message = "HA")]
     Handicap(usize),
-    
+
     /// Property: RE
+    #[strum(message = "RE")]
     Result(&'a str),
-    
+
     /// Property: FG
+    #[strum(message = "FG")]
     Figure(Option<Figure<'a>>),
-    
+
     /// Property: PM
+    #[strum(message = "PM")]
     Printing(usize),
-    
+
     /// Property: TM
+    #[strum(message = "TM")]
     TimeLimit(usize),
-    
+
     /// Property: DT
+    #[strum(message = "DT")]
     Date(&'a str),
-    
+
     /// Property: AV
+    #[strum(message = "AV")]
     Event(&'a str),
-    
+
     /// Property: LB
+    #[strum(message = "LB")]
     StoneText(Vec<StoneText<'a>>),
-    
+
     /// Property: RO
+    #[strum(message = "RO")]
     Round(&'a str),
-    
+
     /// Property: US
+    #[strum(message = "US")]
     SGFCreator(&'a str),
 
     /// Property: VW
+    #[strum(message = "VW")]
     ViewOnly(Vec<PointRange<'a>>),
-    
+
     /// Property: MN
-    MoveNumber(usize)
-}
-
-fn parse_string(mut rules: Pairs<'_, Rule>) -> Result<&'_ str, SgfReaderError> {
-    if let Some(inner_rule) = rules.next() {
-        return Ok(inner_rule.as_str())
-    }
-
-    Err(SgfReaderError::InvalidString)
-}
-
-fn parse_figure(mut rules: Pairs<'_, Rule>) -> Result<Option<Figure<'_>>, SgfReaderError> {
-
-    let node = match rules.next() {
-        Some(node) => node.as_str(),
-        None => return Ok(None)
-    };
-
-    if let Some(index) = node.find(':') {
-        let text = &node[index+1..];
-        let number = node[0..index].parse::<usize>().map_err(|_| SgfReaderError::InvalidNumber)?;
-        return Ok(Some(Figure(number, text)))
-    }
-
-    Ok(None)
-}
-
-fn parse_usize(mut rules: Pairs<'_, Rule>) -> Result<usize, SgfReaderError> {
-    if let Some(inner_rule) = rules.next() {
-        return inner_rule.as_str().parse::<usize>().map_err(|_| SgfReaderError::InvalidNumber)
-    }
-
-    Err(SgfReaderError::InvalidNumber)
-}
-
-fn parse_float(mut rules: Pairs<'_, Rule>) -> Result<f32, SgfReaderError> {
-    if let Some(inner_rule) = rules.next() {
-        return inner_rule.as_str().parse::<f32>().map_err(|_| SgfReaderError::InvalidFloat)
-    }
-
-    Err(SgfReaderError::InvalidFloat)
-}
-
-fn parse_player(mut rules: Pairs<'_, Rule>) -> Result<Player, SgfReaderError> {
-    if let Some(inner_rule) = rules.next() {
-        return Ok(match &inner_rule.as_str().to_uppercase()[..] {
-            "B" => Player::Black,
-            "W" => Player::White,
-            _ => return Err(SgfReaderError::PlayerInformationNotValid)
-        })
-    }
-
-    Err(SgfReaderError::InvalidNumber)
-}
-
-fn parse_stones(rules: Pairs<'_, Rule>) -> Result<Vec<Point<'_>>, SgfReaderError> {
-    let mut stones = Vec::new();
-
-    for rule in rules {
-        stones.push(Point(rule.as_str()));
-    }
-
-    Ok(stones)
-}
-
-fn parse_stone_texts(rules: Pairs<'_, Rule>) -> Result<Vec<StoneText<'_>>, SgfReaderError> {
-    let mut stone_texts = Vec::new();
-
-    for rule in rules {
-        if let Some(index) = rule.as_str().find(':') {
-            let stone = Point(&rule.as_str()[index+1..]);
-            let text = &rule.as_str()[0..index];
-            stone_texts.push(StoneText(stone, text));
-        }
-    }
-
-    Ok(stone_texts)
-}
-
-fn parse_stone(mut rules: Pairs<'_, Rule>) -> Result<Point<'_>, SgfReaderError> {
-    if let Some(inner_rule) = rules.next() {
-        return Ok(Point(inner_rule.as_str()))
-    }
-
-    Err(SgfReaderError::InvalidNumber)
-}
-
-fn parse_point_range(mut rules: Pairs<'_, Rule>) -> Result<PointRange<'_>, SgfReaderError> {
-    if let Some(inner_rule) = rules.next() {
-        let stones = inner_rule.as_str().split(':').collect::<Vec<_>>();
-        return Ok(PointRange(Point(stones[0]), Point(stones[1])));
-    }
-
-    Err(SgfReaderError::PointInformationNotValid)
-}
-
-fn parse_point_ranges(rules: Pairs<'_, Rule>) -> Result<Vec<PointRange<'_>>, SgfReaderError> {
-    let mut ranges = Vec::new();
-    for rule in rules {
-        let stones = rule.as_str().split(':').collect::<Vec<_>>();
-        ranges.push(PointRange(Point(stones[0]), Point(stones[1])));
-    }
-    Ok(ranges)
-}
-
-fn parse_node(pair: Pair<'_, Rule>) -> Result<Tree<'_>, SgfReaderError> {
-    let mut inner_rules = pair.into_inner();
-    
-    if let Some(rule) = inner_rules.next() {
-        if let Rule::node_type = rule.as_rule() {
-            rule.as_str();
-            let result = match &rule.as_str().to_uppercase()[..] {
-                "AP" => Tree::Application(parse_string(inner_rules)?),
-                "C" => Tree::Comment(parse_string(inner_rules)?),
-                "CP" => Tree::Copyright(parse_string(inner_rules)?),
-                "PB" => Tree::BlackName(parse_string(inner_rules)?),
-                "PW" => Tree::WhiteName(parse_string(inner_rules)?),
-                "BT" => Tree::BlackTeam(parse_string(inner_rules)?),
-                "WT" => Tree::WhiteTeam(parse_string(inner_rules)?),
-                "FF" => Tree::FileFormat(parse_usize(inner_rules)?),
-                "GM" => Tree::GameType(parse_usize(inner_rules)?),
-                "CA" => Tree::Charset(parse_string(inner_rules)?),
-                "ST" => Tree::VariationShown(parse_usize(inner_rules)?),
-                "PL" => Tree::WhoseTurn(parse_player(inner_rules)?),
-                "AB" => Tree::BlackStones(parse_stones(inner_rules)?),
-                "AW" => Tree::WhiteStones(parse_stones(inner_rules)?),
-                "SO" => Tree::Source(parse_string(inner_rules)?),
-                "GN" => Tree::GameName(parse_string(inner_rules)?),
-                "N" => Tree::NodeName(parse_string(inner_rules)?),
-                "B" => Tree::BlackMove(parse_stone(inner_rules)?),
-                "W" => Tree::WhiteMove(parse_stone(inner_rules)?),
-                "RU" => Tree::Rule(parse_string(inner_rules)?),
-                "KM" => Tree::Komi(parse_float(inner_rules)?),
-                "AR" => Tree::DrawArrow(parse_point_range(inner_rules)?),
-                "CR" => Tree::DrawCircle(parse_stones(inner_rules)?),
-                "DD" => Tree::GreyOut(parse_stones(inner_rules)?),
-                "MA" => Tree::MarkX(parse_stones(inner_rules)?),
-                "SQ" => Tree::DrawSquare(parse_stones(inner_rules)?),
-                "TR" => Tree::DrawTriangle(parse_stones(inner_rules)?),
-                "AN" => Tree::PersonWhoProvidesAnnotations(parse_string(inner_rules)?),
-                "BR" => Tree::BlackPlayerRank(parse_string(inner_rules)?),
-                "WR" => Tree::WhitePlayerRank(parse_string(inner_rules)?),
-                "HA" => Tree::Handicap(parse_usize(inner_rules)?),
-                "RE" => Tree::Result(parse_string(inner_rules)?),
-                "FG" => Tree::Figure(parse_figure(inner_rules)?),
-                "PM" => Tree::Printing(parse_usize(inner_rules)?),
-                "TM" => Tree::TimeLimit(parse_usize(inner_rules)?),
-                "DT" => Tree::Date(parse_string(inner_rules)?),
-                "EV" => Tree::Event(parse_string(inner_rules)?),
-                "LB" => Tree::StoneText(parse_stone_texts(inner_rules)?),
-                "RO" => Tree::Round(parse_string(inner_rules)?),
-                "US" => Tree::SGFCreator(parse_string(inner_rules)?),
-                "VW" => Tree::ViewOnly(parse_point_ranges(inner_rules)?),
-                "MN" => Tree::MoveNumber(parse_usize(inner_rules)?),
-                "SZ" => {
-                    let size = parse_usize(inner_rules)?;
-                    Tree::BoardSize(size, size)
-                },
-                _ => {
-                    debug_assert!(false, "Unknown rule: {:?}", rule);
-                    Tree::Unknown(rule.as_str())
-                }
-            };
-            return Ok(result);
-        }    
-    }
-
-    Err(SgfReaderError::NodeInformationNotValid)
-}
-
-fn parse_rule(pair: Pair<'_, Rule>) -> Result<Tree<'_>, SgfReaderError> {
-    match pair.as_rule() {
-        Rule::node => parse_node(pair),
-        Rule::object => {
-            let mut items = Vec::new();
-            
-            for pair in pair.into_inner() {
-                items.push(parse_rule(pair)?);
-            }
-            Ok(Tree::Variation(items))
-        },
-        _ => {
-            Err(SgfReaderError::ParseFailed)
-        }
-    }
-}
-
-fn parse_pair(pair: Pair<'_, Rule>) -> Result<Base<'_>, SgfReaderError> {
-    let mut base = Base {
-        items: Vec::new()
-    };
-    
-    for inner_pair in pair.into_inner() {
-        base.items.push(parse_rule(inner_pair)?);
-    }
-
-    Ok(base)
-}
-
-pub fn parse(text: &str) -> Result<Base<'_>, SgfReaderError>{
-    let pairs = SgfParser::parse(Rule::file, text).map_err(|_| SgfReaderError::SyntaxIssue)?;
-
-    if let Some(object) = pairs.into_iter().next() {
-        return parse_pair(object);
-    }
-
-    Err(SgfReaderError::RootObjectNotFound)
+    #[strum(message = "MN")]
+    MoveNumber(usize),
 }
 
 // More detail https://homepages.cwi.nl/~aeb/go/misc/sgf.html#GM
 // https://red-bean.com/sgf/properties.html#CR
 
-
 #[cfg(test)]
 mod tests {
+    use crate::builder::Builder;
+    use crate::parser::parse;
     use crate::*;
 
     #[test]
-    fn basic_sgf_parse() -> Result<(), SgfReaderError>{
+    fn basic_sgf_parse() -> Result<(), SgfToolError> {
         let result = parse("()")?;
         assert_eq!(result.items.len(), 0);
-        assert_eq!(parse("(a)"), Err(SgfReaderError::SyntaxIssue));
-        assert_eq!(parse("(1)"), Err(SgfReaderError::SyntaxIssue));
-        assert_eq!(parse("("), Err(SgfReaderError::SyntaxIssue));
-        assert_eq!(parse(")"), Err(SgfReaderError::SyntaxIssue));
-        assert_eq!(parse(""), Err(SgfReaderError::SyntaxIssue));
-        assert_eq!(parse("-"), Err(SgfReaderError::SyntaxIssue));
-        assert_eq!(parse(" "), Err(SgfReaderError::SyntaxIssue));
+        assert_eq!(parse("(a)"), Err(SgfToolError::SyntaxIssue));
+        assert_eq!(parse("(1)"), Err(SgfToolError::SyntaxIssue));
+        assert_eq!(parse("("), Err(SgfToolError::SyntaxIssue));
+        assert_eq!(parse(")"), Err(SgfToolError::SyntaxIssue));
+        assert_eq!(parse(""), Err(SgfToolError::SyntaxIssue));
+        assert_eq!(parse("-"), Err(SgfToolError::SyntaxIssue));
+        assert_eq!(parse(" "), Err(SgfToolError::SyntaxIssue));
         Ok(())
     }
 
     #[test]
-    fn sgf_parse() -> Result<(), SgfReaderError>{
-        let result = parse(r#"(
+    fn sgf_parse() -> Result<(), SgfToolError> {
+        let result = parse(
+            r#"(
     ;FF[4]
     C[root]
     (
@@ -459,8 +291,8 @@ mod tests {
             ;C[j]
         )
     )
-)"#
-)?;
+)"#,
+        )?;
         assert_eq!(result.items.len(), 4);
         assert_eq!(result.items[0], Tree::FileFormat(4));
         assert_eq!(result.items[1], Tree::Comment("root"));
@@ -473,8 +305,7 @@ mod tests {
             if let Tree::Variation(trees) = &trees[2] {
                 assert_eq!(trees.len(), 1);
                 assert_eq!(trees[0], Tree::Comment("c"));
-            }
-            else {
+            } else {
                 assert!(false, "Variation not found");
             }
 
@@ -482,12 +313,10 @@ mod tests {
                 assert_eq!(trees.len(), 2);
                 assert_eq!(trees[0], Tree::Comment("d"));
                 assert_eq!(trees[1], Tree::Comment("e"));
-            }
-            else {
+            } else {
                 assert!(false, "Variation not found");
             }
-        }
-        else {
+        } else {
             assert!(false, "Variation not found");
         }
 
@@ -500,24 +329,22 @@ mod tests {
                 assert_eq!(trees[0], Tree::Comment("g"));
                 assert_eq!(trees[1], Tree::Comment("h"));
                 assert_eq!(trees[2], Tree::Comment("i"));
-            }
-            else {
+            } else {
                 assert!(false, "Variation not found");
             }
 
             if let Tree::Variation(trees) = &trees[2] {
                 assert_eq!(trees.len(), 1);
                 assert_eq!(trees[0], Tree::Comment("j"));
-            }
-            else {
+            } else {
                 assert!(false, "Variation not found");
             }
-        }
-        else {
+        } else {
             assert!(false, "Variation not found");
         }
 
-        parse(r#"
+        parse(
+            r#"
         (;FF[4]GM[1]SZ[19]FG[257:Figure 1]PM[1]
             PB[Takemiya Masaki]BR[9 dan]PW[Cho Chikun]
             WR[9 dan]RE[W+Resign]KM[5.5]TM[28800]DT[1996-10-18,19]
@@ -553,9 +380,11 @@ mod tests {
             
             (;B[qe]VW[aa:sj]FG[257:Dia. 1]MN[1];W[re];B[qf];W[rf];B[qg];W[pb];B[ob]
             ;W[qb]LB[rg:a]N[Diagram 1]))
-             "#)?;
+             "#,
+        )?;
 
-             parse(r#"(;FF[4]GM[1]SZ[19]FG[257:Figure 1]PM[2]
+        parse(
+            r#"(;FF[4]GM[1]SZ[19]FG[257:Figure 1]PM[2]
                 PB[Cho Chikun]BR[9 dan]PW[Ryu Shikun]WR[9 dan]RE[W+2.5]KM[5.5]
                 DT[1996-08]EV[51st Honinbo]RO[5 (final)]SO[Go World #78]US[Arno Hollosi]
                 ;B[qd];W[dd];B[fc];W[df];B[pp];W[dq];B[kc];W[cn];B[pj];W[jp];B[lq];W[oe]
@@ -605,8 +434,49 @@ mod tests {
                 
                 (;B[qf]VW[aa:sj]FG[257:Dia. 1]MN[1];W[mb];B[kc];W[qe];B[ne];W[kb];B[md]
                 ;W[la];B[nb];W[eb]LB[ob:a][na:b][rc:c][sd:d]N[Diagram 1]))
-                "#)?;
-        
+                "#,
+        )?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn basic_test_1() -> Result<(), SgfToolError> {
+        let source = "(;C[Black to play and win, Igo Hatsuyo-ron Problem 120];AB[ra][hb][lb][fc][lc][bd][ld][ce][de][fe][le][me][oe][pe][bf][mf][of][og][dh][oh][ph][qh][rh][sh][di][mi][ni][oi][pi][aj][fj][lj][ak][ek][lk][rk][sk][al][el][il][pl][ql][am][bm][em][qm][rm][dn][fn][mn][co][fo][ko][oo][bp][cp][ep][pp][sp][fq][pq][qq][sq][cr][nr][pr][bs][ns][os][ps];AW[qa][ib][jb][mb][rb][hc][qc][cd][jd][nd][od][ke][qe][re][df][ff][pf][bg][cg][dg][gg][hg][kg][lg][ng][ah][hi][ki][ri][si][bj][cj][jj][nj][oj][pj][qj][dk][jk][ok][dl][jl][rl][sl][hm][jm][sm][bn][cn][en][jn][on][rn][sn][qo][ro][so][ap][hp][kp][lp][mp][op][qp][eq][rq][ar][ir][mr][or][ms])";
+        let mut buffer = String::new();
+        let tree = parse(&source)?;
+        tree.build(&mut buffer)?;
+        assert_eq!(buffer, source);
+        Ok(())
+    }
+
+    #[test]
+    fn basic_test_2() -> Result<(), SgfToolError> {
+        let source = "(;AW[ca][cb][cc][bd][cd];AB[da][eb][dc][ec][dd][fd][be][ce][de];B[ab];W[bb];B[ac];W[ad];B[aa];C[RIGHT])";
+        let mut buffer = String::new();
+        let tree = parse(&source)?;
+        tree.build(&mut buffer)?;
+        assert_eq!(buffer, source);
+        Ok(())
+    }
+
+    #[test]
+    fn basic_test_3() -> Result<(), SgfToolError> {
+        let source = "(;AW[hh][lh][hi][ji][li][lj];AB[kg][lg][mg][mh][mi][mj][kk][lk][mk];C[Black to play and catch the three stones.](;B[ki];W[kh](;B[jh];W[kj];B[jj];W[ki];B[ii];C[RIGHT])(;B[kj];W[jh]))(;B[jh];W[jj])(;B[jj];W[jh])(;B[ii];W[jj]))";
+        let mut buffer = String::new();
+        let tree = parse(&source)?;
+        tree.build(&mut buffer)?;
+        assert_eq!(buffer, source);
+        Ok(())
+    }
+
+    #[test]
+    fn basic_test_4() -> Result<(), SgfToolError> {
+        let source = "(;FF[4];C[root];SZ[19];B[aa];W[ab])";
+        let mut buffer = String::new();
+        let tree = parse(&source)?;
+        tree.build(&mut buffer)?;
+        assert_eq!(buffer, source);
         Ok(())
     }
 }
