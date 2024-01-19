@@ -1,6 +1,9 @@
 mod builder;
 mod parser;
 
+pub use builder::build;
+pub use parser::parse;
+
 use serde::{Deserialize, Serialize};
 
 use strum::EnumMessage;
