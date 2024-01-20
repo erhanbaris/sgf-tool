@@ -1,6 +1,8 @@
 mod builder;
 mod parser;
 
+use std::borrow::Cow;
+
 pub use builder::Builder;
 pub use builder::build;
 pub use parser::parse;
@@ -61,11 +63,17 @@ pub enum Player {
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Base<'a> {
     #[serde(borrow)]
-    pub items: Vec<Tree<'a>>,
+    pub tokens: Vec<Cow<'a, Token<'a>>>,
+}
+
+impl<'a> Base<'a> {
+    pub fn add_token(&mut self, token: Token<'a>) {
+        self.tokens.push(Cow::Owned(token));
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, EnumMessage)]
-pub enum Tree<'a> {
+pub enum Token<'a> {
     Unknown(&'a str),
 
     /// Property: AP
@@ -101,7 +109,7 @@ pub enum Tree<'a> {
     BoardSize(usize, usize),
 
     /// Variation
-    Variation(Vec<Tree<'a>>),
+    Variation(Vec<Token<'a>>),
 
     /// Property: FF
     #[strum(message = "FF")]
@@ -256,7 +264,7 @@ mod tests {
     #[test]
     fn basic_sgf_parse() -> Result<(), SgfToolError> {
         let result = parse("()")?;
-        assert_eq!(result.items.len(), 0);
+        assert_eq!(result.tokens.len(), 0);
         assert_eq!(parse("(a)"), Err(SgfToolError::SyntaxIssue));
         assert_eq!(parse("(1)"), Err(SgfToolError::SyntaxIssue));
         assert_eq!(parse("("), Err(SgfToolError::SyntaxIssue));
@@ -297,26 +305,26 @@ mod tests {
     )
 )"#,
         )?;
-        assert_eq!(result.items.len(), 4);
-        assert_eq!(result.items[0], Tree::FileFormat(4));
-        assert_eq!(result.items[1], Tree::Comment("root"));
+        assert_eq!(result.tokens.len(), 4);
+        assert_eq!(result.tokens[0].clone().into_owned(), Token::FileFormat(4));
+        assert_eq!(result.tokens[1].clone().into_owned(), Token::Comment("root"));
 
-        if let Tree::Variation(trees) = &result.items[2] {
+        if let Token::Variation(trees) = &result.tokens[2].clone().into_owned() {
             assert_eq!(trees.len(), 4);
-            assert_eq!(trees[0], Tree::Comment("a"));
-            assert_eq!(trees[1], Tree::Comment("b"));
+            assert_eq!(trees[0], Token::Comment("a"));
+            assert_eq!(trees[1], Token::Comment("b"));
 
-            if let Tree::Variation(trees) = &trees[2] {
+            if let Token::Variation(trees) = &trees[2] {
                 assert_eq!(trees.len(), 1);
-                assert_eq!(trees[0], Tree::Comment("c"));
+                assert_eq!(trees[0], Token::Comment("c"));
             } else {
                 assert!(false, "Variation not found");
             }
 
-            if let Tree::Variation(trees) = &trees[3] {
+            if let Token::Variation(trees) = &trees[3] {
                 assert_eq!(trees.len(), 2);
-                assert_eq!(trees[0], Tree::Comment("d"));
-                assert_eq!(trees[1], Tree::Comment("e"));
+                assert_eq!(trees[0], Token::Comment("d"));
+                assert_eq!(trees[1], Token::Comment("e"));
             } else {
                 assert!(false, "Variation not found");
             }
@@ -324,22 +332,22 @@ mod tests {
             assert!(false, "Variation not found");
         }
 
-        if let Tree::Variation(trees) = &result.items[3] {
+        if let Token::Variation(trees) = &result.tokens[3].clone().into_owned() {
             assert_eq!(trees.len(), 3);
-            assert_eq!(trees[0], Tree::Comment("f"));
+            assert_eq!(trees[0], Token::Comment("f"));
 
-            if let Tree::Variation(trees) = &trees[1] {
+            if let Token::Variation(trees) = &trees[1] {
                 assert_eq!(trees.len(), 3);
-                assert_eq!(trees[0], Tree::Comment("g"));
-                assert_eq!(trees[1], Tree::Comment("h"));
-                assert_eq!(trees[2], Tree::Comment("i"));
+                assert_eq!(trees[0], Token::Comment("g"));
+                assert_eq!(trees[1], Token::Comment("h"));
+                assert_eq!(trees[2], Token::Comment("i"));
             } else {
                 assert!(false, "Variation not found");
             }
 
-            if let Tree::Variation(trees) = &trees[2] {
+            if let Token::Variation(trees) = &trees[2] {
                 assert_eq!(trees.len(), 1);
-                assert_eq!(trees[0], Tree::Comment("j"));
+                assert_eq!(trees[0], Token::Comment("j"));
             } else {
                 assert!(false, "Variation not found");
             }

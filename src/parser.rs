@@ -1,5 +1,7 @@
+use std::borrow::Cow;
+
 use crate::parser::inner_parser::{Rule, SgfParser};
-use crate::{Base, Figure, Player, Point, PointRange, SgfToolError, StoneText, Tree};
+use crate::{Base, Figure, Player, Point, PointRange, SgfToolError, StoneText, Token};
 
 use pest::iterators::{Pair, Pairs};
 use pest::Parser;
@@ -120,62 +122,62 @@ fn parse_point_ranges(rules: Pairs<'_, Rule>) -> Result<Vec<PointRange<'_>>, Sgf
     Ok(ranges)
 }
 
-fn parse_node(pair: Pair<'_, Rule>) -> Result<Tree<'_>, SgfToolError> {
+fn parse_node(pair: Pair<'_, Rule>) -> Result<Token<'_>, SgfToolError> {
     let mut inner_rules = pair.into_inner();
 
     if let Some(rule) = inner_rules.next() {
         if let Rule::node_type = rule.as_rule() {
             rule.as_str();
             let result = match &rule.as_str().to_uppercase()[..] {
-                "AP" => Tree::Application(parse_string(inner_rules)?),
-                "C" => Tree::Comment(parse_string(inner_rules)?),
-                "CP" => Tree::Copyright(parse_string(inner_rules)?),
-                "PB" => Tree::BlackName(parse_string(inner_rules)?),
-                "PW" => Tree::WhiteName(parse_string(inner_rules)?),
-                "BT" => Tree::BlackTeam(parse_string(inner_rules)?),
-                "WT" => Tree::WhiteTeam(parse_string(inner_rules)?),
-                "FF" => Tree::FileFormat(parse_usize(inner_rules)?),
-                "GM" => Tree::GameType(parse_usize(inner_rules)?),
-                "CA" => Tree::Charset(parse_string(inner_rules)?),
-                "ST" => Tree::VariationShown(parse_usize(inner_rules)?),
-                "PL" => Tree::WhoseTurn(parse_player(inner_rules)?),
-                "AB" => Tree::BlackStones(parse_stones(inner_rules)?),
-                "AW" => Tree::WhiteStones(parse_stones(inner_rules)?),
-                "SO" => Tree::Source(parse_string(inner_rules)?),
-                "GN" => Tree::GameName(parse_string(inner_rules)?),
-                "N" => Tree::NodeName(parse_string(inner_rules)?),
-                "B" => Tree::BlackMove(parse_stone(inner_rules)?),
-                "W" => Tree::WhiteMove(parse_stone(inner_rules)?),
-                "RU" => Tree::Rule(parse_string(inner_rules)?),
-                "KM" => Tree::Komi(parse_float(inner_rules)?),
-                "AR" => Tree::DrawArrow(parse_point_range(inner_rules)?),
-                "CR" => Tree::DrawCircle(parse_stones(inner_rules)?),
-                "DD" => Tree::GreyOut(parse_stones(inner_rules)?),
-                "MA" => Tree::MarkX(parse_stones(inner_rules)?),
-                "SQ" => Tree::DrawSquare(parse_stones(inner_rules)?),
-                "TR" => Tree::DrawTriangle(parse_stones(inner_rules)?),
-                "AN" => Tree::PersonWhoProvidesAnnotations(parse_string(inner_rules)?),
-                "BR" => Tree::BlackPlayerRank(parse_string(inner_rules)?),
-                "WR" => Tree::WhitePlayerRank(parse_string(inner_rules)?),
-                "HA" => Tree::Handicap(parse_usize(inner_rules)?),
-                "RE" => Tree::Result(parse_string(inner_rules)?),
-                "FG" => Tree::Figure(parse_figure(inner_rules)?),
-                "PM" => Tree::Printing(parse_usize(inner_rules)?),
-                "TM" => Tree::TimeLimit(parse_usize(inner_rules)?),
-                "DT" => Tree::Date(parse_string(inner_rules)?),
-                "EV" => Tree::Event(parse_string(inner_rules)?),
-                "LB" => Tree::StoneText(parse_stone_texts(inner_rules)?),
-                "RO" => Tree::Round(parse_string(inner_rules)?),
-                "US" => Tree::SGFCreator(parse_string(inner_rules)?),
-                "VW" => Tree::ViewOnly(parse_point_ranges(inner_rules)?),
-                "MN" => Tree::MoveNumber(parse_usize(inner_rules)?),
+                "AP" => Token::Application(parse_string(inner_rules)?),
+                "C" => Token::Comment(parse_string(inner_rules)?),
+                "CP" => Token::Copyright(parse_string(inner_rules)?),
+                "PB" => Token::BlackName(parse_string(inner_rules)?),
+                "PW" => Token::WhiteName(parse_string(inner_rules)?),
+                "BT" => Token::BlackTeam(parse_string(inner_rules)?),
+                "WT" => Token::WhiteTeam(parse_string(inner_rules)?),
+                "FF" => Token::FileFormat(parse_usize(inner_rules)?),
+                "GM" => Token::GameType(parse_usize(inner_rules)?),
+                "CA" => Token::Charset(parse_string(inner_rules)?),
+                "ST" => Token::VariationShown(parse_usize(inner_rules)?),
+                "PL" => Token::WhoseTurn(parse_player(inner_rules)?),
+                "AB" => Token::BlackStones(parse_stones(inner_rules)?),
+                "AW" => Token::WhiteStones(parse_stones(inner_rules)?),
+                "SO" => Token::Source(parse_string(inner_rules)?),
+                "GN" => Token::GameName(parse_string(inner_rules)?),
+                "N" => Token::NodeName(parse_string(inner_rules)?),
+                "B" => Token::BlackMove(parse_stone(inner_rules)?),
+                "W" => Token::WhiteMove(parse_stone(inner_rules)?),
+                "RU" => Token::Rule(parse_string(inner_rules)?),
+                "KM" => Token::Komi(parse_float(inner_rules)?),
+                "AR" => Token::DrawArrow(parse_point_range(inner_rules)?),
+                "CR" => Token::DrawCircle(parse_stones(inner_rules)?),
+                "DD" => Token::GreyOut(parse_stones(inner_rules)?),
+                "MA" => Token::MarkX(parse_stones(inner_rules)?),
+                "SQ" => Token::DrawSquare(parse_stones(inner_rules)?),
+                "TR" => Token::DrawTriangle(parse_stones(inner_rules)?),
+                "AN" => Token::PersonWhoProvidesAnnotations(parse_string(inner_rules)?),
+                "BR" => Token::BlackPlayerRank(parse_string(inner_rules)?),
+                "WR" => Token::WhitePlayerRank(parse_string(inner_rules)?),
+                "HA" => Token::Handicap(parse_usize(inner_rules)?),
+                "RE" => Token::Result(parse_string(inner_rules)?),
+                "FG" => Token::Figure(parse_figure(inner_rules)?),
+                "PM" => Token::Printing(parse_usize(inner_rules)?),
+                "TM" => Token::TimeLimit(parse_usize(inner_rules)?),
+                "DT" => Token::Date(parse_string(inner_rules)?),
+                "EV" => Token::Event(parse_string(inner_rules)?),
+                "LB" => Token::StoneText(parse_stone_texts(inner_rules)?),
+                "RO" => Token::Round(parse_string(inner_rules)?),
+                "US" => Token::SGFCreator(parse_string(inner_rules)?),
+                "VW" => Token::ViewOnly(parse_point_ranges(inner_rules)?),
+                "MN" => Token::MoveNumber(parse_usize(inner_rules)?),
                 "SZ" => {
                     let size = parse_usize(inner_rules)?;
-                    Tree::BoardSize(size, size)
+                    Token::BoardSize(size, size)
                 }
                 _ => {
                     debug_assert!(false, "Unknown rule: {:?}", rule);
-                    Tree::Unknown(rule.as_str())
+                    Token::Unknown(rule.as_str())
                 }
             };
             return Ok(result);
@@ -185,26 +187,26 @@ fn parse_node(pair: Pair<'_, Rule>) -> Result<Tree<'_>, SgfToolError> {
     Err(SgfToolError::NodeInformationNotValid)
 }
 
-fn parse_rule(pair: Pair<'_, Rule>) -> Result<Tree<'_>, SgfToolError> {
+fn parse_rule(pair: Pair<'_, Rule>) -> Result<Token<'_>, SgfToolError> {
     match pair.as_rule() {
         Rule::node => parse_node(pair),
         Rule::object => {
-            let mut items = Vec::new();
+            let mut tokens = Vec::new();
 
             for pair in pair.into_inner() {
-                items.push(parse_rule(pair)?);
+                tokens.push(parse_rule(pair)?);
             }
-            Ok(Tree::Variation(items))
+            Ok(Token::Variation(tokens))
         }
         _ => Err(SgfToolError::ParseFailed),
     }
 }
 
 fn parse_pair(pair: Pair<'_, Rule>) -> Result<Base<'_>, SgfToolError> {
-    let mut base = Base { items: Vec::new() };
+    let mut base = Base { tokens: Vec::new() };
 
     for inner_pair in pair.into_inner() {
-        base.items.push(parse_rule(inner_pair)?);
+        base.tokens.push(Cow::Owned(parse_rule(inner_pair)?));
     }
 
     Ok(base)

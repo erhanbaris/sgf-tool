@@ -1,4 +1,4 @@
-use crate::{Base, Figure, Player, Point, PointRange, SgfToolError, StoneText, Tree};
+use crate::{Base, Figure, Player, Point, PointRange, SgfToolError, StoneText, Token};
 use std::string::String;
 
 use strum::EnumMessage;
@@ -54,7 +54,7 @@ impl Builder for Player {
 impl Builder for Base<'_> {
     fn build(&self, buffer: &mut String) -> Result<(), SgfToolError> {
         buffer.push('(');
-        for node in self.items.iter() {
+        for node in self.tokens.iter() {
             node.build(buffer)?;
         }
         buffer.push(')');
@@ -104,21 +104,21 @@ impl Builder for f32 {
     }
 }
 
-impl Builder for Tree<'_> {
+impl Builder for Token<'_> {
     fn build(&self, buffer: &mut String) -> Result<(), SgfToolError> {
         let node_type = self.get_message();
 
         match self {
-            Tree::Unknown(item) => add_node(buffer, node_type, item),
-            Tree::Application(application) => add_node(buffer, node_type, application),
-            Tree::Comment(comment) => add_node(buffer, node_type, comment),
-            Tree::Copyright(copyright) => add_node(buffer, node_type, copyright),
-            Tree::BlackName(name) => add_node(buffer, node_type, name),
-            Tree::WhiteName(name) => add_node(buffer, node_type, name),
-            Tree::BlackTeam(name) => add_node(buffer, node_type, name),
-            Tree::WhiteTeam(name) => add_node(buffer, node_type, name),
-            Tree::BoardSize(size, _) => add_node(buffer, node_type, size),
-            Tree::Variation(variants) => {
+            Token::Unknown(item) => add_node(buffer, node_type, item),
+            Token::Application(application) => add_node(buffer, node_type, application),
+            Token::Comment(comment) => add_node(buffer, node_type, comment),
+            Token::Copyright(copyright) => add_node(buffer, node_type, copyright),
+            Token::BlackName(name) => add_node(buffer, node_type, name),
+            Token::WhiteName(name) => add_node(buffer, node_type, name),
+            Token::BlackTeam(name) => add_node(buffer, node_type, name),
+            Token::WhiteTeam(name) => add_node(buffer, node_type, name),
+            Token::BoardSize(size, _) => add_node(buffer, node_type, size),
+            Token::Variation(variants) => {
                 buffer.push('(');
                 for variant in variants.iter() {
                     variant.build(buffer)?;
@@ -126,41 +126,41 @@ impl Builder for Tree<'_> {
                 buffer.push(')');
                 Ok(())
             }
-            Tree::FileFormat(format) => add_node(buffer, node_type, format),
-            Tree::GameType(game) => add_node(buffer, node_type, game),
-            Tree::Charset(charset) => add_node(buffer, node_type, charset),
-            Tree::VariationShown(show) => add_node(buffer, node_type, show),
-            Tree::WhoseTurn(turn) => add_node(buffer, node_type, turn),
-            Tree::BlackStones(stones) => add_multiple_nodes(buffer, node_type, stones),
-            Tree::WhiteStones(stones) => add_multiple_nodes(buffer, node_type, stones),
-            Tree::BlackMove(point) => add_node(buffer, node_type, point),
-            Tree::WhiteMove(point) => add_node(buffer, node_type, point),
-            Tree::BlackPlayerRank(rank) => add_node(buffer, node_type, rank),
-            Tree::WhitePlayerRank(rank) => add_node(buffer, node_type, rank),
-            Tree::Source(source) => add_node(buffer, node_type, source),
-            Tree::GameName(name) => add_node(buffer, node_type, name),
-            Tree::NodeName(name) => add_node(buffer, node_type, name),
-            Tree::Rule(rule) => add_node(buffer, node_type, rule),
-            Tree::Komi(komi) => add_node(buffer, node_type, komi),
-            Tree::PersonWhoProvidesAnnotations(person) => add_node(buffer, node_type, person),
-            Tree::DrawArrow(point_range) => add_node(buffer, node_type, point_range),
-            Tree::DrawCircle(points) => add_multiple_nodes(buffer, node_type, points),
-            Tree::DrawSquare(item) => add_multiple_nodes(buffer, node_type, item),
-            Tree::DrawTriangle(item) => add_multiple_nodes(buffer, node_type, item),
-            Tree::GreyOut(item) => add_multiple_nodes(buffer, node_type, item),
-            Tree::MarkX(item) => add_multiple_nodes(buffer, node_type, item),
-            Tree::Handicap(item) => add_node(buffer, node_type, item),
-            Tree::Result(item) => add_node(buffer, node_type, item),
-            Tree::Figure(item) => add_node(buffer, node_type, item),
-            Tree::Printing(item) => add_node(buffer, node_type, item),
-            Tree::TimeLimit(item) => add_node(buffer, node_type, item),
-            Tree::Date(item) => add_node(buffer, node_type, item),
-            Tree::Event(item) => add_node(buffer, node_type, item),
-            Tree::StoneText(item) => add_multiple_nodes(buffer, node_type, item),
-            Tree::Round(item) => add_node(buffer, node_type, item),
-            Tree::SGFCreator(item) => add_node(buffer, node_type, item),
-            Tree::ViewOnly(item) => add_multiple_nodes(buffer, node_type, item),
-            Tree::MoveNumber(item) => add_node(buffer, node_type, item),
+            Token::FileFormat(format) => add_node(buffer, node_type, format),
+            Token::GameType(game) => add_node(buffer, node_type, game),
+            Token::Charset(charset) => add_node(buffer, node_type, charset),
+            Token::VariationShown(show) => add_node(buffer, node_type, show),
+            Token::WhoseTurn(turn) => add_node(buffer, node_type, turn),
+            Token::BlackStones(stones) => add_multiple_nodes(buffer, node_type, stones),
+            Token::WhiteStones(stones) => add_multiple_nodes(buffer, node_type, stones),
+            Token::BlackMove(point) => add_node(buffer, node_type, point),
+            Token::WhiteMove(point) => add_node(buffer, node_type, point),
+            Token::BlackPlayerRank(rank) => add_node(buffer, node_type, rank),
+            Token::WhitePlayerRank(rank) => add_node(buffer, node_type, rank),
+            Token::Source(source) => add_node(buffer, node_type, source),
+            Token::GameName(name) => add_node(buffer, node_type, name),
+            Token::NodeName(name) => add_node(buffer, node_type, name),
+            Token::Rule(rule) => add_node(buffer, node_type, rule),
+            Token::Komi(komi) => add_node(buffer, node_type, komi),
+            Token::PersonWhoProvidesAnnotations(person) => add_node(buffer, node_type, person),
+            Token::DrawArrow(point_range) => add_node(buffer, node_type, point_range),
+            Token::DrawCircle(points) => add_multiple_nodes(buffer, node_type, points),
+            Token::DrawSquare(item) => add_multiple_nodes(buffer, node_type, item),
+            Token::DrawTriangle(item) => add_multiple_nodes(buffer, node_type, item),
+            Token::GreyOut(item) => add_multiple_nodes(buffer, node_type, item),
+            Token::MarkX(item) => add_multiple_nodes(buffer, node_type, item),
+            Token::Handicap(item) => add_node(buffer, node_type, item),
+            Token::Result(item) => add_node(buffer, node_type, item),
+            Token::Figure(item) => add_node(buffer, node_type, item),
+            Token::Printing(item) => add_node(buffer, node_type, item),
+            Token::TimeLimit(item) => add_node(buffer, node_type, item),
+            Token::Date(item) => add_node(buffer, node_type, item),
+            Token::Event(item) => add_node(buffer, node_type, item),
+            Token::StoneText(item) => add_multiple_nodes(buffer, node_type, item),
+            Token::Round(item) => add_node(buffer, node_type, item),
+            Token::SGFCreator(item) => add_node(buffer, node_type, item),
+            Token::ViewOnly(item) => add_multiple_nodes(buffer, node_type, item),
+            Token::MoveNumber(item) => add_node(buffer, node_type, item),
         }
     }
 }
