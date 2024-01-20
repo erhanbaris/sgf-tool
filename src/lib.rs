@@ -58,7 +58,7 @@ pub enum Player {
     White,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Base<'a> {
     #[serde(borrow)]
     pub items: Vec<Tree<'a>>,
