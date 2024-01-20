@@ -1,4 +1,4 @@
-use crate::{Base, Figure, Player, Point, PointRange, SgfToolError, StoneText, Token};
+use crate::{Base, Figure, Move, Player, Point, PointRange, PointText, SgfToolError, Token};
 use std::string::String;
 
 use strum::EnumMessage;
@@ -10,6 +10,17 @@ pub trait Builder {
 impl Builder for Point<'_> {
     fn build(&self, buffer: &mut String) -> Result<(), SgfToolError> {
         buffer.push_str(self.0);
+        Ok(())
+    }
+}
+
+impl Builder for Move<'_> {
+    fn build(&self, buffer: &mut String) -> Result<(), SgfToolError> {
+        match &self {
+            Move::Move(point) => point.build(buffer)?,
+            Move::Pass => buffer.push_str(""),
+        };
+
         Ok(())
     }
 }
@@ -32,7 +43,7 @@ impl Builder for Figure<'_> {
     }
 }
 
-impl Builder for StoneText<'_> {
+impl Builder for PointText<'_> {
     fn build(&self, buffer: &mut String) -> Result<(), SgfToolError> {
         self.0.build(buffer)?;
         buffer.push(':');
@@ -118,14 +129,7 @@ impl Builder for Token<'_> {
             Token::BlackTeam(name) => add_node(buffer, node_type, name),
             Token::WhiteTeam(name) => add_node(buffer, node_type, name),
             Token::BoardSize(size, _) => add_node(buffer, node_type, size),
-            Token::Variation(variants) => {
-                buffer.push('(');
-                for variant in variants.iter() {
-                    variant.build(buffer)?;
-                }
-                buffer.push(')');
-                Ok(())
-            }
+            Token::Variation(variant) => variant.build(buffer),
             Token::FileFormat(format) => add_node(buffer, node_type, format),
             Token::GameType(game) => add_node(buffer, node_type, game),
             Token::Charset(charset) => add_node(buffer, node_type, charset),
@@ -156,7 +160,7 @@ impl Builder for Token<'_> {
             Token::TimeLimit(item) => add_node(buffer, node_type, item),
             Token::Date(item) => add_node(buffer, node_type, item),
             Token::Event(item) => add_node(buffer, node_type, item),
-            Token::StoneText(item) => add_multiple_nodes(buffer, node_type, item),
+            Token::PointText(item) => add_multiple_nodes(buffer, node_type, item),
             Token::Round(item) => add_node(buffer, node_type, item),
             Token::SGFCreator(item) => add_node(buffer, node_type, item),
             Token::ViewOnly(item) => add_multiple_nodes(buffer, node_type, item),

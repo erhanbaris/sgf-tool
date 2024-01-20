@@ -1,7 +1,7 @@
 file       = _{ SOI ~ object ~ EOI }
 WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 node_value =  { (!"]" ~ ANY)+ }
-node_item  = _{ "[" ~ node_value ~ "]" }
+node_item  = _{ "[" ~ node_value? ~ "]" }
 node       =  { ";"* ~ node_type ~ node_item+ }
 node_type  =  { LETTER+ }
 value      = _{ object | node }

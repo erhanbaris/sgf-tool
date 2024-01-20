@@ -3,12 +3,13 @@ mod parser;
 
 use std::borrow::Cow;
 
-pub use builder::Builder;
 pub use builder::build;
+pub use builder::Builder;
 pub use parser::parse;
 
 use serde::{Deserialize, Serialize};
 
+use strum::EnumDiscriminants;
 use strum::EnumMessage;
 use thiserror::Error;
 
@@ -45,6 +46,27 @@ pub enum SgfToolError {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Point<'a>(pub &'a str);
 
+impl Point<'_> {
+    pub fn xy(&self) -> (usize, usize) {
+        let position = self.0.to_lowercase();
+        let x = position.chars().nth(0).unwrap_or_default();
+        let y = position.chars().nth(1).unwrap_or_default();
+
+        (x as usize - 'a' as usize, y as usize - 'a' as usize)
+    }
+
+    pub fn xy_for_human(&self) -> (usize, usize) {
+        let (x, y) = self.xy();
+        (x + 1, y + 1)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum Move<'a> {
+    Move(#[serde(borrow)] Point<'a>),
+    Pass,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct PointRange<'a>(#[serde(borrow)] pub Point<'a>, pub Point<'a>);
 
@@ -52,7 +74,7 @@ pub struct PointRange<'a>(#[serde(borrow)] pub Point<'a>, pub Point<'a>);
 pub struct Figure<'a>(pub usize, pub &'a str);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct StoneText<'a>(pub Point<'a>, pub &'a str);
+pub struct PointText<'a>(pub Point<'a>, pub &'a str);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum Player {
@@ -70,9 +92,23 @@ impl<'a> Base<'a> {
     pub fn add_token(&mut self, token: Token<'a>) {
         self.tokens.push(Cow::Owned(token));
     }
+
+    pub fn get(&self, token_type: TokenType) -> Option<&Cow<'a, Token<'a>>> {
+        self.tokens
+            .iter()
+            .find(|item| token_type == item.as_ref().into())
+    }
+
+    pub fn get_list(&self, token_type: TokenType) -> Vec<&Cow<'a, Token<'a>>> {
+        self.tokens
+            .iter()
+            .filter(|item| token_type == item.as_ref().into())
+            .collect::<Vec<_>>()
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, EnumMessage)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, EnumMessage, EnumDiscriminants)]
+#[strum_discriminants(name(TokenType))]
 pub enum Token<'a> {
     Unknown(&'a str),
 
@@ -109,7 +145,7 @@ pub enum Token<'a> {
     BoardSize(usize, usize),
 
     /// Variation
-    Variation(Vec<Token<'a>>),
+    Variation(Base<'a>),
 
     /// Property: FF
     #[strum(message = "FF")]
@@ -141,11 +177,11 @@ pub enum Token<'a> {
 
     /// Property: B
     #[strum(message = "B")]
-    BlackMove(Point<'a>),
+    BlackMove(Move<'a>),
 
     /// Property: W
     #[strum(message = "W")]
-    WhiteMove(Point<'a>),
+    WhiteMove(Move<'a>),
 
     /// Property: BR
     #[strum(message = "BR")]
@@ -233,7 +269,7 @@ pub enum Token<'a> {
 
     /// Property: LB
     #[strum(message = "LB")]
-    StoneText(Vec<StoneText<'a>>),
+    PointText(Vec<PointText<'a>>),
 
     /// Property: RO
     #[strum(message = "RO")]
@@ -306,25 +342,25 @@ mod tests {
 )"#,
         )?;
         assert_eq!(result.tokens.len(), 4);
-        assert_eq!(result.tokens[0].clone().into_owned(), Token::FileFormat(4));
-        assert_eq!(result.tokens[1].clone().into_owned(), Token::Comment("root"));
+        assert_eq!(result.tokens[0].as_ref(), &Token::FileFormat(4));
+        assert_eq!(result.tokens[1].as_ref(), &Token::Comment("root"));
 
-        if let Token::Variation(trees) = &result.tokens[2].clone().into_owned() {
-            assert_eq!(trees.len(), 4);
-            assert_eq!(trees[0], Token::Comment("a"));
-            assert_eq!(trees[1], Token::Comment("b"));
+        if let Token::Variation(trees) = result.tokens[2].as_ref() {
+            assert_eq!(trees.tokens.len(), 4);
+            assert_eq!(trees.tokens[0].as_ref(), &Token::Comment("a"));
+            assert_eq!(trees.tokens[1].as_ref(), &Token::Comment("b"));
 
-            if let Token::Variation(trees) = &trees[2] {
-                assert_eq!(trees.len(), 1);
-                assert_eq!(trees[0], Token::Comment("c"));
+            if let Token::Variation(trees) = trees.tokens[2].as_ref() {
+                assert_eq!(trees.tokens.len(), 1);
+                assert_eq!(trees.tokens[0].as_ref(), &Token::Comment("c"));
             } else {
                 assert!(false, "Variation not found");
             }
 
-            if let Token::Variation(trees) = &trees[3] {
-                assert_eq!(trees.len(), 2);
-                assert_eq!(trees[0], Token::Comment("d"));
-                assert_eq!(trees[1], Token::Comment("e"));
+            if let Token::Variation(trees) = trees.tokens[3].as_ref() {
+                assert_eq!(trees.tokens.len(), 2);
+                assert_eq!(trees.tokens[0].as_ref(), &Token::Comment("d"));
+                assert_eq!(trees.tokens[1].as_ref(), &Token::Comment("e"));
             } else {
                 assert!(false, "Variation not found");
             }
@@ -332,22 +368,22 @@ mod tests {
             assert!(false, "Variation not found");
         }
 
-        if let Token::Variation(trees) = &result.tokens[3].clone().into_owned() {
-            assert_eq!(trees.len(), 3);
-            assert_eq!(trees[0], Token::Comment("f"));
+        if let Token::Variation(trees) = &result.tokens[3].as_ref() {
+            assert_eq!(trees.tokens.len(), 3);
+            assert_eq!(trees.tokens[0].as_ref(), &Token::Comment("f"));
 
-            if let Token::Variation(trees) = &trees[1] {
-                assert_eq!(trees.len(), 3);
-                assert_eq!(trees[0], Token::Comment("g"));
-                assert_eq!(trees[1], Token::Comment("h"));
-                assert_eq!(trees[2], Token::Comment("i"));
+            if let Token::Variation(trees) = trees.tokens[1].as_ref() {
+                assert_eq!(trees.tokens.len(), 3);
+                assert_eq!(trees.tokens[0].as_ref(), &Token::Comment("g"));
+                assert_eq!(trees.tokens[1].as_ref(), &Token::Comment("h"));
+                assert_eq!(trees.tokens[2].as_ref(), &Token::Comment("i"));
             } else {
                 assert!(false, "Variation not found");
             }
 
-            if let Token::Variation(trees) = &trees[2] {
-                assert_eq!(trees.len(), 1);
-                assert_eq!(trees[0], Token::Comment("j"));
+            if let Token::Variation(trees) = trees.tokens[2].as_ref() {
+                assert_eq!(trees.tokens.len(), 1);
+                assert_eq!(trees.tokens[0].as_ref(), &Token::Comment("j"));
             } else {
                 assert!(false, "Variation not found");
             }
@@ -484,11 +520,58 @@ mod tests {
 
     #[test]
     fn basic_test_4() -> Result<(), SgfToolError> {
-        let source = "(;FF[4];C[root];SZ[19];B[aa];W[ab])";
+        let source = "(;FF[4];C[root];SZ[19];B[aa];W[ab];B[])";
         let mut buffer = String::new();
         let tree = parse(&source)?;
         tree.build(&mut buffer)?;
         assert_eq!(buffer, source);
+        Ok(())
+    }
+
+    #[test]
+    fn basic_test_5() -> Result<(), SgfToolError> {
+        let point = Point("ss");
+        assert_eq!(point.xy(), (18, 18));
+        assert_eq!(point.xy_for_human(), (19, 19));
+        Ok(())
+    }
+
+    #[test]
+    fn basic_test_6() -> Result<(), SgfToolError> {
+        let source = "(;FF[4];C[root];SZ[19];B[aa];W[ab];B[])";
+        let tree = parse(&source)?;
+
+        assert_eq!(
+            tree.get(TokenType::FileFormat),
+            Some(Cow::Owned(Token::FileFormat(4))).as_ref()
+        );
+        assert_eq!(
+            tree.get(TokenType::Comment),
+            Some(Cow::Owned(Token::Comment("root"))).as_ref()
+        );
+        assert_eq!(
+            tree.get(TokenType::BoardSize),
+            Some(Cow::Owned(Token::BoardSize(19, 19))).as_ref()
+        );
+        assert_eq!(
+            tree.get(TokenType::BlackMove),
+            Some(Cow::Owned(Token::BlackMove(Move::Move(Point("aa"))))).as_ref()
+        );
+
+        let items = tree.get_list(TokenType::BlackMove);
+        assert_eq!(items.len(), 2);
+        assert_eq!(
+            items.get(0),
+            Some(Cow::Owned(Token::BlackMove(Move::Move(Point("aa")))))
+                .as_ref()
+                .as_ref()
+        );
+        assert_eq!(
+            items.get(1),
+            Some(Cow::Owned(Token::BlackMove(Move::Pass)))
+                .as_ref()
+                .as_ref()
+        );
         Ok(())
     }
 }

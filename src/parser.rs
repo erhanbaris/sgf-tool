@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::parser::inner_parser::{Rule, SgfParser};
-use crate::{Base, Figure, Player, Point, PointRange, SgfToolError, StoneText, Token};
+use crate::{Base, Figure, Move, Player, Point, PointRange, PointText, SgfToolError, Token};
 
 use pest::iterators::{Pair, Pairs};
 use pest::Parser;
@@ -82,26 +82,25 @@ fn parse_stones(rules: Pairs<'_, Rule>) -> Result<Vec<Point<'_>>, SgfToolError> 
     Ok(stones)
 }
 
-fn parse_stone_texts(rules: Pairs<'_, Rule>) -> Result<Vec<StoneText<'_>>, SgfToolError> {
+fn parse_stone_texts(rules: Pairs<'_, Rule>) -> Result<Vec<PointText<'_>>, SgfToolError> {
     let mut stone_texts = Vec::new();
 
     for rule in rules {
         if let Some(index) = rule.as_str().find(':') {
             let stone = Point(&rule.as_str()[index + 1..]);
             let text = &rule.as_str()[0..index];
-            stone_texts.push(StoneText(stone, text));
+            stone_texts.push(PointText(stone, text));
         }
     }
 
     Ok(stone_texts)
 }
 
-fn parse_stone(mut rules: Pairs<'_, Rule>) -> Result<Point<'_>, SgfToolError> {
+fn parse_move(mut rules: Pairs<'_, Rule>) -> Result<Move<'_>, SgfToolError> {
     if let Some(inner_rule) = rules.next() {
-        return Ok(Point(inner_rule.as_str()));
+        return Ok(Move::Move(Point(inner_rule.as_str())));
     }
-
-    Err(SgfToolError::InvalidNumber)
+    Ok(Move::Pass)
 }
 
 fn parse_point_range(mut rules: Pairs<'_, Rule>) -> Result<PointRange<'_>, SgfToolError> {
@@ -146,8 +145,8 @@ fn parse_node(pair: Pair<'_, Rule>) -> Result<Token<'_>, SgfToolError> {
                 "SO" => Token::Source(parse_string(inner_rules)?),
                 "GN" => Token::GameName(parse_string(inner_rules)?),
                 "N" => Token::NodeName(parse_string(inner_rules)?),
-                "B" => Token::BlackMove(parse_stone(inner_rules)?),
-                "W" => Token::WhiteMove(parse_stone(inner_rules)?),
+                "B" => Token::BlackMove(parse_move(inner_rules)?),
+                "W" => Token::WhiteMove(parse_move(inner_rules)?),
                 "RU" => Token::Rule(parse_string(inner_rules)?),
                 "KM" => Token::Komi(parse_float(inner_rules)?),
                 "AR" => Token::DrawArrow(parse_point_range(inner_rules)?),
@@ -166,7 +165,7 @@ fn parse_node(pair: Pair<'_, Rule>) -> Result<Token<'_>, SgfToolError> {
                 "TM" => Token::TimeLimit(parse_usize(inner_rules)?),
                 "DT" => Token::Date(parse_string(inner_rules)?),
                 "EV" => Token::Event(parse_string(inner_rules)?),
-                "LB" => Token::StoneText(parse_stone_texts(inner_rules)?),
+                "LB" => Token::PointText(parse_stone_texts(inner_rules)?),
                 "RO" => Token::Round(parse_string(inner_rules)?),
                 "US" => Token::SGFCreator(parse_string(inner_rules)?),
                 "VW" => Token::ViewOnly(parse_point_ranges(inner_rules)?),
@@ -191,12 +190,12 @@ fn parse_rule(pair: Pair<'_, Rule>) -> Result<Token<'_>, SgfToolError> {
     match pair.as_rule() {
         Rule::node => parse_node(pair),
         Rule::object => {
-            let mut tokens = Vec::new();
+            let mut base = Base::default();
 
             for pair in pair.into_inner() {
-                tokens.push(parse_rule(pair)?);
+                base.tokens.push(Cow::Owned(parse_rule(pair)?));
             }
-            Ok(Token::Variation(tokens))
+            Ok(Token::Variation(base))
         }
         _ => Err(SgfToolError::ParseFailed),
     }
