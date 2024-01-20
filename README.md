@@ -8,7 +8,7 @@
 
 SGF file format parser and builder.
 
-Reference: https://red-bean.com/sgf/sgf4.html
+Reference: <https://red-bean.com/sgf/sgf4.html>
 
 ## Examples
 
@@ -27,7 +27,7 @@ fn main() -> Result<(), SgfToolError> {
 
     // Or
 
-    assert_eq!(tree.get(TokenType::FileFormat), Some(Cow::Owned(Token::FileFormat(4))).as_ref());
+    assert_eq!(base.get(TokenType::FileFormat), Some(Cow::Owned(Token::FileFormat(4))).as_ref());
 
     /* Rebuild sgf and validage */
     let mut buffer = String::new();
@@ -37,9 +37,9 @@ fn main() -> Result<(), SgfToolError> {
     // Build sgf
     let mut base = sgf_tool::Base::default();
     base.add_token(Token::Application("sgf-tool"));
-    base.add_token(Token::BlackMove(Some(Point("ab"))));
-    base.add_token(Token::WhiteMove(Some(Point("bc"))));
-    base.add_token(Token::BlackMove(None));
+    base.add_token(Token::BlackMove(Move::Move(Point("ab"))));
+    base.add_token(Token::WhiteMove(Move::Move(Point("bc"))));
+    base.add_token(Token::BlackMove(Move::Pass));
 
     assert_eq!("(;AP[sgf-tool];B[ab];W[bc];B[])", &build(base)?);
     Ok(())
