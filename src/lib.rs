@@ -287,6 +287,10 @@ pub enum Token<'a> {
     /// Property: MN
     #[strum(message = "MN")]
     MoveNumber(usize),
+
+    /// Property: AE
+    #[strum(message = "AE")]
+    ClearPoints(Vec<Point<'a>>),
 }
 
 // More detail https://homepages.cwi.nl/~aeb/go/misc/sgf.html#GM

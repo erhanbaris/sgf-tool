@@ -165,6 +165,7 @@ impl Builder for Token<'_> {
             Token::SGFCreator(item) => add_node(buffer, node_type, item),
             Token::ViewOnly(item) => add_multiple_nodes(buffer, node_type, item),
             Token::MoveNumber(item) => add_node(buffer, node_type, item),
+            Token::ClearPoints(item) => add_multiple_nodes(buffer, node_type, item),
         }
     }
 }

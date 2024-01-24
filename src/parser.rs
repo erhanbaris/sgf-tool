@@ -170,6 +170,7 @@ fn parse_node(pair: Pair<'_, Rule>) -> Result<Token<'_>, SgfToolError> {
                 "US" => Token::SGFCreator(parse_string(inner_rules)?),
                 "VW" => Token::ViewOnly(parse_point_ranges(inner_rules)?),
                 "MN" => Token::MoveNumber(parse_usize(inner_rules)?),
+                "AE" => Token::ClearPoints(parse_stones(inner_rules)?),
                 "SZ" => {
                     let size = parse_usize(inner_rules)?;
                     Token::BoardSize(size, size)
