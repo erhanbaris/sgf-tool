@@ -120,7 +120,7 @@ impl Builder for Token<'_> {
         let node_type = self.get_message();
 
         match self {
-            Token::Unknown(item) => add_node(buffer, node_type, item),
+            Token::Unknown(item, values) => add_multiple_nodes(buffer, Some(item), values),
             Token::Application(application) => add_node(buffer, node_type, application),
             Token::Comment(comment) => add_node(buffer, node_type, comment),
             Token::Copyright(copyright) => add_node(buffer, node_type, copyright),
@@ -187,7 +187,7 @@ fn add_node<T: Builder + ?Sized>(
 
 fn add_multiple_nodes<T: Builder + ?Sized>(
     buffer: &mut String,
-    node_type: Option<&'static str>,
+    node_type: Option<&'_ str>,
     node_value: &T,
 ) -> Result<(), SgfToolError> {
     if let Some(message) = node_type {

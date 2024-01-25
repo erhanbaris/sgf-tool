@@ -111,7 +111,7 @@ impl<'a> Base<'a> {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, EnumMessage, EnumDiscriminants)]
 #[strum_discriminants(name(TokenType))]
 pub enum Token<'a> {
-    Unknown(&'a str),
+    Unknown(&'a str, Vec<&'a str>),
 
     /// Property: AP
     #[strum(message = "AP")]

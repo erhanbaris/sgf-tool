@@ -21,6 +21,17 @@ fn parse_string(mut rules: Pairs<'_, Rule>) -> Result<&'_ str, SgfToolError> {
     Err(SgfToolError::InvalidString)
 }
 
+fn parse_strings(mut rules: Pairs<'_, Rule>) -> Result<Vec<&'_ str>, SgfToolError> {
+    let mut result = Vec::new();
+    while let Some(inner_rule) = rules.next() {
+        if Rule::node_value == inner_rule.as_rule() {
+            result.push(inner_rule.as_str());
+        }
+    }
+
+    Ok(result)
+}
+
 fn parse_figure(mut rules: Pairs<'_, Rule>) -> Result<Option<Figure<'_>>, SgfToolError> {
     let node = match rules.next() {
         Some(node) => node.as_str(),
@@ -175,10 +186,7 @@ fn parse_node(pair: Pair<'_, Rule>) -> Result<Token<'_>, SgfToolError> {
                     let size = parse_usize(inner_rules)?;
                     Token::BoardSize(size, size)
                 }
-                _ => {
-                    debug_assert!(false, "Unknown rule: {:?}", rule);
-                    Token::Unknown(rule.as_str())
-                }
+                _ => Token::Unknown(rule.as_str(), parse_strings(inner_rules)?)
             };
             return Ok(result);
         }
