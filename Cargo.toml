@@ -19,4 +19,4 @@ pest = "2.7.6"
 pest_derive = "2.7.6"
 thiserror = "1.0.56"
 serde = { version = "1.0.196", features = ["derive"] }
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.26", features = ["derive"] }
